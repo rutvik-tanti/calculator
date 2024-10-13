@@ -17,12 +17,14 @@ class CalculatorApp extends StatelessWidget {
     return MaterialApp(
       title: 'Scientific Calculator',
       theme: ThemeData(primarySwatch: Colors.blue),
-      home: CalculatorScreen(),
+      home: const CalculatorScreen(),
     );
   }
 }
 
 class CalculatorScreen extends StatefulWidget {
+  const CalculatorScreen({super.key});
+
   @override
   _CalculatorScreenState createState() => _CalculatorScreenState();
 }
@@ -61,7 +63,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Calculator')),
+      appBar: AppBar(title: const Text('Calculator')),
       body: Column(
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
@@ -69,7 +71,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
             padding: const EdgeInsets.all(16.0),
             child: TextField(
               controller: TextEditingController(text: input),
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                 border: OutlineInputBorder(),
                 hintText: 'Input',
               ),
@@ -79,7 +81,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
             padding: const EdgeInsets.all(16.0),
             child: Text(
               answer,
-              style: TextStyle(fontSize: 24),
+              style: const TextStyle(fontSize: 24),
             ),
           ),
           Row(
@@ -144,7 +146,7 @@ class CalculatorButton extends StatelessWidget {
   final String label;
   final VoidCallback onPressed;
 
-  const CalculatorButton({required this.label, required this.onPressed});
+  const CalculatorButton({super.key, required this.label, required this.onPressed});
 
   @override
   Widget build(BuildContext context) {
@@ -153,7 +155,7 @@ class CalculatorButton extends StatelessWidget {
       child: Container(
         height: 50,
         width: 50,
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           shape: BoxShape.circle,
           color: Colors.amber,
         ),
