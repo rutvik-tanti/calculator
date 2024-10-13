@@ -7,10 +7,9 @@ environment:
   sdk: ">=3.0.0 <4.0.0"
 
 dependencies:
-  expressions: ^0.2.5+2
   flutter:
     sdk: flutter
-  math_expressions: ^2.6.0
+  flutter_inappwebview: ^6.1.5
 
 dev_dependencies:
   flutter_test:
@@ -19,8 +18,10 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-  assets:
-  - assets/
+#  assets:
+#    - assets/
+#    - assets/canvaskit/
+#    - assets/icons/
   # fonts:
   #   - family: Schyler
   #     fonts:
