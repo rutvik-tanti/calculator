@@ -1,290 +1,199 @@
+import 'dart:js' as js;
+import 'dart:math';
+
 import 'package:flutter/material.dart';
-import 'package:math_expressions/math_expressions.dart';
 
 void main() {
-  runApp(CalculatorApp());
+  runApp(const CalculatorApp());
 }
 
 class CalculatorApp extends StatelessWidget {
+  const CalculatorApp({Key? key}) : super(key: key);
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: CalculatorHome(),
+      title: 'Scientific Calculator',
+      theme: ThemeData(primarySwatch: Colors.blue),
+      home: const Calculator(),
     );
   }
 }
 
-class CalculatorHome extends StatefulWidget {
+class Calculator extends StatefulWidget {
+  const Calculator({Key? key}) : super(key: key);
+
   @override
-  _CalculatorHomeState createState() => _CalculatorHomeState();
+  _CalculatorState createState() => _CalculatorState();
 }
 
-class _CalculatorHomeState extends State<CalculatorHome> {
-  String input = '';
-  String output = '';
-  bool isScientificMode = false;
+class _CalculatorState extends State<Calculator> {
+  String _input = '';
+  String _output = '';
 
-  int factorial(int n) {
-    if (n == 0 || n == 1) {
-      return 1;
-    } else {
-      return n * factorial(n - 1); // Recursive approach
-    }
-  }
-
-  String processImplicitMultiplication(String expression) {
-    String processedExpression = expression;
-
-    // Regular expression to find cases where a number is followed by (
-    processedExpression = processedExpression.replaceAllMapped(
-        RegExp(r'(\d)(\()'), (match) => '${match.group(1)}*${match.group(2)}');
-
-    // Regular expression to find cases where ) is followed by a number
-    processedExpression = processedExpression.replaceAllMapped(
-        RegExp(r'(\))(\d)'), (match) => '${match.group(1)}*${match.group(2)}');
-    processedExpression = processedExpression.replaceAllMapped(
-      RegExp(
-          r'√(\d+(\.\d+)?)'), // Looks for √ followed by digits (and optional decimal)
-      (match) => 'sqrt(${match.group(1)})', // Wraps the number in sqrt()
-    );
-
-    // Handle incomplete cases like 2^(3 and convert to pow(2, 3)
-    processedExpression = processedExpression.replaceAllMapped(
-      RegExp(
-          r'(\d+|\d*\.\d+)\^(\d+|\d*\.\d+)$'), // Matches incomplete case: 2^3
-      (match) => 'pow(${match.group(1)}, ${match.group(2)})',
-    );
-
-    processedExpression = processedExpression.replaceAllMapped(
-      RegExp(r'(\d+)!'), // Match a number followed by !
-      (match) {
-        int number = int.parse(match.group(1)!);
-        return factorial(number)
-            .toString(); // Replace with the calculated factorial
-      },
-    );
-    return processedExpression;
-  }
-
-  void buttonPressed(String value) {
+  void _append(String value) {
     setState(() {
-      if (value == '1/x') {
-        input += '1÷';
-      } else if (value == 'x!') {
-        input += '!';
-      } else if (value == 'xʸ') {
-        input += '^(';
-      } else if (value == 'AC') {
-        input = '';
-        output = '';
-      } else if (value == '⌫') {
-        input = input.isNotEmpty ? input.substring(0, input.length - 1) : '';
-      } else if (value == '=') {
-        try {
-          String expression = processImplicitMultiplication(input);
-          Parser p = Parser();
-          Expression exp = p.parse(expression
-              .replaceAll('×', '*')
-              .replaceAll('÷', '/')
-              .replaceAll('π', '3.14159'));
-          ContextModel cm = ContextModel();
-          double eval = exp.evaluate(EvaluationType.REAL, cm);
-          output = eval.toString();
-        } catch (e) {
-          output = 'Error';
-        }
-      } else if (value == '2nd') {
-        // Handle '2nd' if needed for more complex operations
-      } else if (value == '↻') {
-        isScientificMode = !isScientificMode; // Toggle between modes
-      } else {
-        input += value;
+      _input += value;
+    });
+  }
+
+  void _clear() {
+    setState(() {
+      _input = '';
+      _output = '';
+    });
+  }
+
+  void _backspace() {
+    setState(() {
+      if (_input.isNotEmpty) {
+        _input = _input.substring(0, _input.length - 1);
       }
     });
   }
 
-  Widget buildButton(String text, Color color, double size) {
-    return Expanded(
-      child: Container(
-        height: isScientificMode ? 60 : 80,
-        child: ElevatedButton(
-          onPressed: () => buttonPressed(text),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: color,
-            padding: EdgeInsets.zero,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(0),
-            ),
-          ),
-          child: Text(
-            text,
-            style: TextStyle(
-              fontSize: size,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-          ),
-        ),
-      ),
-    );
+  void _calculate() {
+    try {
+      String modifiedInput = _input.replaceAll('π', (pi).toString());
+
+      // Evaluate functions
+      if (modifiedInput.contains('sin')) {
+        _output = _evaluateFunction(modifiedInput, 'sin').toString();
+      } else if (modifiedInput.contains('cos')) {
+        _output = _evaluateFunction(modifiedInput, 'cos').toString();
+      } else if (modifiedInput.contains('tan')) {
+        _output = _evaluateFunction(modifiedInput, 'tan').toString();
+      } else if (modifiedInput.contains('sqrt')) {
+        _output = _evaluateFunction(modifiedInput, 'sqrt').toString();
+      } else if (modifiedInput.contains('ln')) {
+        _output = _evaluateFunction(modifiedInput, 'ln').toString();
+      } else {
+        // Handle normal arithmetic evaluation
+        String expression = '2 * (3 + 5)';
+        print('object');
+        // Call the JavaScript function
+        var result = js.context.callMethod('math.evaluate', [expression]);
+        print(result);
+        _output = result.toString();
+      }
+    } catch (e) {
+      setState(() {
+        _output = 'Error';
+      });
+    }
   }
 
-  Widget buildNormalKeyboard() {
-    return Column(
-      children: [
-        Row(
-          children: [
-            buildButton('AC', Colors.redAccent, 24),
-            buildButton('⌫', Colors.blueAccent, 24),
-            buildButton('%', Colors.blueAccent, 24),
-            buildButton('÷', Colors.blueAccent, 24),
-          ],
-        ),
-        Row(
-          children: [
-            buildButton('7', Colors.grey, 24),
-            buildButton('8', Colors.grey, 24),
-            buildButton('9', Colors.grey, 24),
-            buildButton('×', Colors.blueAccent, 24),
-          ],
-        ),
-        Row(
-          children: [
-            buildButton('4', Colors.grey, 24),
-            buildButton('5', Colors.grey, 24),
-            buildButton('6', Colors.grey, 24),
-            buildButton('-', Colors.blueAccent, 24),
-          ],
-        ),
-        Row(
-          children: [
-            buildButton('1', Colors.grey, 24),
-            buildButton('2', Colors.grey, 24),
-            buildButton('3', Colors.grey, 24),
-            buildButton('+', Colors.blueAccent, 24),
-          ],
-        ),
-        Row(
-          children: [
-            buildButton('↻', Colors.grey, 24),
-            buildButton('0', Colors.grey, 24),
-            buildButton('.', Colors.grey, 24),
-            buildButton('=', Colors.greenAccent, 24),
-          ],
-        ),
-      ],
-    );
+  double _evaluateFunction(String input, String functionName) {
+    // Create a regex pattern for the specific function
+    final regex = RegExp('${functionName}\\(([^)]+)\\)');
+    final match = regex.firstMatch(input);
+    print(match?.group(1)!);
+    print(regex);
+    if (match != null) {
+      final argument = double.parse(match.group(1)!);
+      switch (functionName) {
+        case 'sin':
+          return sin(argument);
+        case 'cos':
+          return cos(argument);
+        case 'tan':
+          return tan(argument);
+        case 'sqrt':
+          return sqrt(argument);
+        case 'ln':
+          return log(argument);
+        default:
+          throw Exception('Unknown function');
+      }
+    }
+    throw Exception('Function not found');
   }
 
-  Widget buildScientificKeyboard() {
-    return Column(
-      children: [
-        Row(
-          children: [
-            buildButton('2nd', Colors.grey, 18),
-            buildButton('deg', Colors.grey, 18),
-            buildButton('sin', Colors.blueAccent, 18),
-            buildButton('cos', Colors.blueAccent, 18),
-            buildButton('tan', Colors.blueAccent, 18),
-          ],
-        ),
-        Row(
-          children: [
-            buildButton('xʸ', Colors.grey, 24), // Power function
-            buildButton('lg', Colors.blueAccent, 24),
-            buildButton('ln', Colors.blueAccent, 24),
-            buildButton('(', Colors.grey, 24),
-            buildButton(')', Colors.grey, 24),
-          ],
-        ),
-        Row(
-          children: [
-            buildButton('√', Colors.grey, 24), // Square root
-            buildButton('AC', Colors.redAccent, 24),
-            buildButton('⌫', Colors.blueAccent, 24),
-            buildButton('%', Colors.blueAccent, 24),
-            buildButton('÷', Colors.blueAccent, 24),
-          ],
-        ),
-        Row(
-          children: [
-            buildButton('x!', Colors.grey, 24), // Factorial
-            buildButton('7', Colors.grey, 24),
-            buildButton('8', Colors.grey, 24),
-            buildButton('9', Colors.grey, 24),
-            buildButton('×', Colors.blueAccent, 24),
-          ],
-        ),
-        Row(
-          children: [
-            buildButton('1/x', Colors.grey, 24), // Reciprocal
-            buildButton('4', Colors.grey, 24),
-            buildButton('5', Colors.grey, 24),
-            buildButton('6', Colors.grey, 24),
-            buildButton('-', Colors.blueAccent, 24),
-          ],
-        ),
-        Row(
-          children: [
-            buildButton('π', Colors.grey, 24), // Pi constant
-            buildButton('1', Colors.grey, 24),
-            buildButton('2', Colors.grey, 24),
-            buildButton('3', Colors.grey, 24),
-            buildButton('+', Colors.blueAccent, 24),
-          ],
-        ),
-        Row(
-          children: [
-            buildButton('↻', Colors.grey, 24), // Toggle back
-            buildButton('e', Colors.grey, 24), // Euler's number
-            buildButton('0', Colors.grey, 24),
-            buildButton('.', Colors.grey, 24),
-            buildButton('=', Colors.greenAccent, 24),
-          ],
-        ),
-      ],
-    );
+  double _evaluateArithmetic(String input) {
+    // You can use the `expressions` package here to evaluate arithmetic expressions.
+    // For simplicity, let's use the Dart eval functions directly or a custom parser.
+
+    // In this case, we will just do a basic evaluation using `eval`
+    // This function is simplistic; in a production app, you'd want a more robust solution.
+    return double.parse(input); // Just for demonstration; replace with actual arithmetic evaluation.
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Calculator'),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.history),
-            onPressed: () {
-              // Handle history action
-            },
-          ),
-        ],
-      ),
+      appBar: AppBar(title: const Text('Scientific Calculator')),
       body: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
         children: [
-          Expanded(
-            child: Container(
-              padding: EdgeInsets.all(12),
-              alignment: Alignment.centerRight,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  Text(
-                    input,
-                    style: TextStyle(fontSize: 48, fontWeight: FontWeight.bold),
-                  ),
-                  Text(
-                    output,
-                    style: TextStyle(fontSize: 32, color: Colors.grey),
-                  ),
-                ],
-              ),
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 24.0, horizontal: 12.0),
+            alignment: Alignment.centerRight,
+            child: Text(
+              _input,
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
           ),
-          isScientificMode ? buildScientificKeyboard() : buildNormalKeyboard(),
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 12.0),
+            alignment: Alignment.centerRight,
+            child: Text(
+              _output,
+              style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
+            ),
+          ),
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Wrap(
+                  children: _buildButtons(),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
+  }
+
+  List<Widget> _buildButtons() {
+    final buttons = [
+      {'label': '7', 'onTap': () => _append('7')},
+      {'label': '8', 'onTap': () => _append('8')},
+      {'label': '9', 'onTap': () => _append('9')},
+      {'label': '/', 'onTap': () => _append('/')},
+      {'label': '4', 'onTap': () => _append('4')},
+      {'label': '5', 'onTap': () => _append('5')},
+      {'label': '6', 'onTap': () => _append('6')},
+      {'label': '*', 'onTap': () => _append('*')},
+      {'label': '1', 'onTap': () => _append('1')},
+      {'label': '2', 'onTap': () => _append('2')},
+      {'label': '3', 'onTap': () => _append('3')},
+      {'label': '-', 'onTap': () => _append('-')},
+      {'label': '0', 'onTap': () => _append('0')},
+      {'label': '.', 'onTap': () => _append('.')},
+      {'label': 'C', 'onTap': _clear},
+      {'label': '+', 'onTap': () => _append('+')},
+      {'label': 'sin', 'onTap': () => _append('sin(')},
+      {'label': 'cos', 'onTap': () => _append('cos(')},
+      {'label': 'tan', 'onTap': () => _append('tan(')},
+      {'label': 'sqrt', 'onTap': () => _append('sqrt(')},
+      {'label': 'ln', 'onTap': () => _append('ln(')},
+      {'label': 'e', 'onTap': () => _append('2.718281828459')},
+      {'label': 'π', 'onTap': () => _append('π')},
+      {'label': 'Ans', 'onTap': _calculate},
+      {'label': 'Back', 'onTap': _backspace},
+      {'label': ')', 'onTap': () => _append(')')},
+    ];
+
+    return buttons.map((button) {
+      return Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: ElevatedButton(
+          onPressed: button['onTap'] as void Function(),
+          child: Text(button['label'] as String),
+        ),
+      );
+    }).toList();
   }
 }
