@@ -72,7 +72,7 @@ class _CalculatorState extends State<Calculator> {
         String expression = '2 * (3 + 5)';
         print('object');
         // Call the JavaScript function
-        var result = js.context.callMethod('math.evaluate', [expression]);
+        var result = js.context.callMethod('evaluate', [expression]);
         print(result);
         _output = result.toString();
       }
@@ -115,7 +115,8 @@ class _CalculatorState extends State<Calculator> {
 
     // In this case, we will just do a basic evaluation using `eval`
     // This function is simplistic; in a production app, you'd want a more robust solution.
-    return double.parse(input); // Just for demonstration; replace with actual arithmetic evaluation.
+    return double.parse(
+        input); // Just for demonstration; replace with actual arithmetic evaluation.
   }
 
   @override
@@ -126,7 +127,8 @@ class _CalculatorState extends State<Calculator> {
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(vertical: 24.0, horizontal: 12.0),
+            padding:
+                const EdgeInsets.symmetric(vertical: 24.0, horizontal: 12.0),
             alignment: Alignment.centerRight,
             child: Text(
               _input,
@@ -134,7 +136,8 @@ class _CalculatorState extends State<Calculator> {
             ),
           ),
           Container(
-            padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 12.0),
+            padding:
+                const EdgeInsets.symmetric(vertical: 12.0, horizontal: 12.0),
             alignment: Alignment.centerRight,
             child: Text(
               _output,
