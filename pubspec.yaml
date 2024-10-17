@@ -9,7 +9,10 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  flutter_inappwebview: ^6.1.5
+  flutter_inappwebview: ^6.0.0
+  flutter_js: ^0.8.1
+  math_expressions: ^2.5.0
+
 
 dev_dependencies:
   flutter_test:
@@ -18,8 +21,26 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-#  assets:
-#    - assets/
+  assets:
+    - assets/
+    - assets/web/
+    - assets/web/assets/
+    - assets/web/assets/assets/
+    - assets/web/assets/fonts/
+    - assets/web/assets/packages/
+    - assets/web/assets/packages/flutter_inappwebview/
+    - assets/web/assets/packages/flutter_inappwebview/assets/
+    - assets/web/assets/packages/flutter_inappwebview/assets/t_rex_runner/
+    - assets/web/assets/packages/flutter_inappwebview_web/
+    - assets/web/assets/packages/flutter_inappwebview_web/assets/
+    - assets/web/assets/packages/flutter_inappwebview_web/assets/web/
+    - assets/web/assets/packages/flutter_js/
+    - assets/web/assets/packages/flutter_js/assets/
+    - assets/web/assets/packages/flutter_js/assets/js/
+    - assets/web/assets/shaders/
+    - assets/web/canvaskit/
+    - assets/web/canvaskit/chromium/
+    - assets/web/icons/
 #    - assets/canvaskit/
 #    - assets/icons/
   # fonts:
