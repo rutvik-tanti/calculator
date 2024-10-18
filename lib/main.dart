@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 
+InAppLocalhostServer inAppLocalhostServer = InAppLocalhostServer(documentRoot: 'assets');
+
 // @JS('getAnswer')
 // external double getAnswer(String input);
 
@@ -13,7 +15,9 @@ import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 //       width: val,
 //     );
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await inAppLocalhostServer.start();
   runApp(const CalculatorApp());
 }
 
@@ -207,7 +211,7 @@ class _LocalHtmlWebViewState extends State<LocalHtmlWebView> {
     return Scaffold(
       appBar: AppBar(title: Text("Local HTML WebView")),
       body: InAppWebView(
-        initialFile: "assets/web/index.html",
+        initialUrlRequest: URLRequest(url: WebUri("http://localhost:8080/web/index.html")),
         initialSettings: InAppWebViewSettings(javaScriptEnabled: true),
         onWebViewCreated: (InAppWebViewController controller) {
           webViewController = controller;

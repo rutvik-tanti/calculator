@@ -20,5 +20,10 @@ public final class GeneratedPluginRegistrant {
     } catch (Exception e) {
       Log.e(TAG, "Error registering plugin flutter_inappwebview_android, com.pichillilorenzo.flutter_inappwebview_android.InAppWebViewFlutterPlugin", e);
     }
+    try {
+      flutterEngine.getPlugins().add(new io.abner.flutter_js.FlutterJsPlugin());
+    } catch (Exception e) {
+      Log.e(TAG, "Error registering plugin flutter_js, io.abner.flutter_js.FlutterJsPlugin", e);
+    }
   }
 }
