@@ -1,25 +1,13 @@
-import 'dart:js_interop';
+import 'dart:math';
 
+import 'package:expressions/expressions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-// InAppLocalhostServer inAppLocalhostServer = InAppLocalhostServer(documentRoot: 'assets');
-
-@JS('getAnswer')
-external double getAnswer(String input);
-
-const double size = 40;
-const double size2 = 40;
-const double pad = 2;
 bool isScientific = false;
-Widget s(double val) => SizedBox(
-      height: val.h,
-      width: val.w,
-    );
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // await inAppLocalhostServer.start();
   runApp(const CalculatorApp());
 }
 
@@ -29,16 +17,17 @@ class CalculatorApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ScreenUtilInit(
-        designSize: const Size(242, 468),
-        minTextAdapt: true,
-        splitScreenMode: true,
-        builder: (context, child) {
-          return MaterialApp(
-            title: 'Scientific Calculator',
-            theme: ThemeData(primarySwatch: Colors.blue),
-            home: const CalculatorScreen(),
-          );
-        });
+      designSize: const Size(242, 468), // Base design size for scaling
+      minTextAdapt: true,
+      splitScreenMode: true,
+      builder: (context, child) {
+        return MaterialApp(
+          title: 'Scientific Calculator',
+          theme: ThemeData(primarySwatch: Colors.blue),
+          home: const CalculatorScreen(),
+        );
+      },
+    );
   }
 }
 
@@ -55,19 +44,17 @@ class CalculatorScreenState extends State<CalculatorScreen> {
 
   void onButtonPressed(String value) {
     setState(() {
-      if (value == 'x²') {
-        input += '^2';
-      } else if (value == 'xʸ') {
-        input += '^';
-      } else if (value == '⬅') {
+      if (value == '⬅') {
         input = input.substring(0, input.length - 1);
-      } else if (value == '+-') {
-        input += '-';
-      } else if (value == "C") {
-        input = "";
-        answer = "";
       } else if (value == "=") {
-        answer = getAnswer(input).toString();
+        try {
+          String processedString = processString(input);
+          double total = evaluateExpression(processedString);
+          answer = total.toString();
+        } catch (e) {
+          print(e);
+          answer = 'Error';
+        }
       } else if (value == "⇌") {
         isScientific = !isScientific;
         input = ""; // Reset input when switching modes
@@ -78,13 +65,128 @@ class CalculatorScreenState extends State<CalculatorScreen> {
     });
   }
 
-  String calculateResult(String expression) {
-    // Basic expression evaluation logic (for demonstration purposes)
-    try {
-      return expression; // Replace this with your calculation logic
-    } catch (e) {
-      return "Error";
-    }
+// Helper function to convert degrees to radians
+  double degToRad(double degrees) {
+    return degrees * pi / 180;
+  }
+
+// Helper function to compute factorial
+  int factorial(int n) {
+    if (n < 0) throw ArgumentError('Factorial is not defined for negative numbers');
+    return n == 0 ? 1 : n * factorial(n - 1);
+  }
+
+// Function to evaluate arithmetic expressions
+  double evaluateExpression(String expression) {
+    const evaluator = ExpressionEvaluator();
+    final parsedExpression = Expression.parse(expression);
+
+    return double.parse(evaluator.eval(parsedExpression, {}).toString());
+  }
+
+// Function to process and replace sin(), cos(), tan(), log10(), factorial, and power (^) calls with evaluated results
+  String processString(String s) {
+    print(s);
+    // Replace implicit multiplication like 5(4-1) with 5 * (4-1)
+    s = s.replaceAllMapped(RegExp(r'(\d+)\s*\(([^)]+)\)'), (match) {
+      return '${match[1]} * (${match[2]})';
+    });
+
+    s = s.replaceAllMapped(RegExp(r'asin\((.*?)\)'), (match) {
+      String inside = match[1]!;
+      double value = evaluateExpression(inside);
+      if (value < -1 || value > 1) {
+        throw ArgumentError('Input for asin must be in the range [-1, 1]. Got: $value');
+      }
+      double result = asin(value) * 180 / pi; // Convert radians to degrees
+      return result.toString();
+    });
+
+    s = s.replaceAllMapped(RegExp(r'acos\((.*?)\)'), (match) {
+      String inside = match[1]!;
+      double value = evaluateExpression(inside);
+      if (value < -1 || value > 1) {
+        throw ArgumentError('Input for acos must be in the range [-1, 1]. Got: $value');
+      }
+      double result = acos(value) * 180 / pi; // Convert radians to degrees
+      return result.toString();
+    });
+
+    s = s.replaceAllMapped(RegExp(r'atan\((.*?)\)'), (match) {
+      String inside = match[1]!;
+      double value = evaluateExpression(inside);
+      double result = atan(value) * 180 / pi; // Convert radians to degrees
+      return result.toString();
+    });
+
+    // Replace sin() and cos() with their evaluated results
+    s = s.replaceAllMapped(RegExp(r'sin\((.*?)\)'), (match) {
+      String inside = match[1]!;
+      double value = evaluateExpression(inside);
+      double result = sin(degToRad(value));
+      return result.toString();
+    });
+
+    s = s.replaceAllMapped(RegExp(r'cos\((.*?)\)'), (match) {
+      String inside = match[1]!;
+      double value = evaluateExpression(inside);
+      double result = cos(degToRad(value));
+      return result.toString();
+    });
+
+    // Replace tan() with its evaluated result
+    s = s.replaceAllMapped(RegExp(r'tan\((.*?)\)'), (match) {
+      String inside = match[1]!;
+      double value = evaluateExpression(inside);
+      double result = tan(degToRad(value));
+      return result.toString();
+    });
+
+    // Replace log() with base-10 log (log10)
+    s = s.replaceAllMapped(RegExp(r'log\((.*?)\)'), (match) {
+      String inside = match[1]!;
+      double value = evaluateExpression(inside);
+      double result = log(value) / log(10); // log base 10
+      return result.toString();
+    });
+
+    s = s.replaceAllMapped(RegExp(r'sqrt\((.*?)\)'), (match) {
+      String inside = match[1]!;
+      double value = evaluateExpression(inside);
+      double result = sqrt(value);
+      return result.toString();
+    });
+
+    // Replace the constant 'e' with 2.718281828
+    s = s.replaceAll('e', '2.718281828');
+
+    // Replace the constant 'pi' with its value
+    s = s.replaceAll('pi', pi.toString());
+
+    // Replace power (^) expressions like 5^2 with the evaluated result
+    s = s.replaceAllMapped(RegExp(r'(\d+)\s*\^\s*(\d+)'), (match) {
+      double base = double.parse(match[1]!);
+      double exponent = double.parse(match[2]!);
+      double result = pow(base, exponent).toDouble();
+      return result.toString();
+    });
+
+    // Replace factorial (!) expressions like (2+3)! or 5! with the evaluated result
+    s = s.replaceAllMapped(RegExp(r'\((.*?)\)!'), (match) {
+      String inside = match[1]!;
+      double value = evaluateExpression(inside);
+      int result = factorial(value.toInt());
+      return result.toString();
+    });
+
+    // Handle standalone factorials (e.g., 5!)
+    s = s.replaceAllMapped(RegExp(r'(\d+)\s*!'), (match) {
+      int number = int.parse(match[1]!);
+      int result = factorial(number);
+      return result.toString();
+    });
+
+    return s;
   }
 
   @override
@@ -93,25 +195,36 @@ class CalculatorScreenState extends State<CalculatorScreen> {
       body: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: TextField(
-              controller: TextEditingController(text: input),
-              style: const TextStyle(fontSize: 24.0),
-              textAlign: TextAlign.right,
-              decoration: const InputDecoration(
-                border: InputBorder.none,
-              ),
-            ),
+          const SizedBox(
+            height: 50,
           ),
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Align(
-              alignment: Alignment.centerRight,
-              child: Text(
-                answer,
-                style: const TextStyle(fontSize: 24),
-              ),
+          Expanded(
+            child: Column(
+              children: [
+                const Spacer(),
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16.r, vertical: 8.r),
+                  child: TextField(
+                    controller: TextEditingController(text: input),
+                    style: TextStyle(fontSize: 24.sp), // Responsive font size
+                    textAlign: TextAlign.right,
+                    decoration: const InputDecoration(
+                      border: InputBorder.none,
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16.r, vertical: 8.r),
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: Text(
+                      answer,
+                      style: TextStyle(fontSize: 24.sp), // Responsive font size
+                    ),
+                  ),
+                ),
+                const Spacer(),
+              ],
             ),
           ),
           Column(
@@ -119,14 +232,28 @@ class CalculatorScreenState extends State<CalculatorScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  s(isScientific ? size2 : size),
-                  s(isScientific ? size2 : size),
-                  s(isScientific ? size2 : size),
-                  if (isScientific) s(isScientific ? size2 : size),
+                  SizedBox(
+                    width: isScientific ? 40.w : 50.w, // Responsive width
+                    height: isScientific ? 25.w : 35.h, // Responsive height
+                  ),
+                  SizedBox(
+                    width: isScientific ? 40.w : 50.w,
+                    height: isScientific ? 25.w : 35.h,
+                  ),
+                  SizedBox(
+                    width: isScientific ? 40.w : 50.w,
+                    height: isScientific ? 25.w : 35.h,
+                  ),
+                  if (isScientific)
+                    SizedBox(
+                      width: isScientific ? 40.w : 50.w,
+                    ),
                   CalculatorButton(label: '⬅', onPressed: () => onButtonPressed('⬅')),
                 ],
               ),
-              s(2),
+              SizedBox(
+                height: 2.h,
+              ),
             ],
           ),
           if (!isScientific) ...[
@@ -167,7 +294,7 @@ class CalculatorScreenState extends State<CalculatorScreen> {
 
   Widget buildNumberRow(List<String> labels) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: pad),
+      padding: EdgeInsets.only(bottom: 2.h), // Responsive padding
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: labels.map((label) {
@@ -193,37 +320,19 @@ class CalculatorButton extends StatelessWidget {
     return InkWell(
       onTap: onPressed,
       child: Container(
-        height: isScientific ? size2.h : size.h,
-        width: isScientific ? size2.w : size.w,
+        height: isScientific ? 35.h : 45.h, // Responsive height
+        width: isScientific ? 40.w : 50.w, // Responsive width
         decoration: const BoxDecoration(
           shape: BoxShape.circle,
           color: Colors.amber,
         ),
-        child: Center(child: Text(label)),
+        child: Center(
+          child: Text(
+            label,
+            style: TextStyle(fontSize: 16.sp), // Responsive font size
+          ),
+        ),
       ),
     );
   }
 }
-
-// class LocalHtmlWebView extends StatefulWidget {
-//   @override
-//   _LocalHtmlWebViewState createState() => _LocalHtmlWebViewState();
-// }
-//
-// class _LocalHtmlWebViewState extends State<LocalHtmlWebView> {
-//   late InAppWebViewController webViewController;
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       appBar: AppBar(title: Text("Local HTML WebView")),
-//       body: InAppWebView(
-//         initialUrlRequest: URLRequest(url: WebUri("http://localhost:8080/web/index.html")),
-//         initialSettings: InAppWebViewSettings(javaScriptEnabled: true),
-//         onWebViewCreated: (InAppWebViewController controller) {
-//           webViewController = controller;
-//         },
-//       ),
-//     );
-//   }
-// }
