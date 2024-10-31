@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:expressions/expressions.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
@@ -18,8 +19,6 @@ class CalculatorApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return ScreenUtilInit(
       designSize: const Size(242, 468), // Base design size for scaling
-      minTextAdapt: true,
-      splitScreenMode: true,
       builder: (context, child) {
         return MaterialApp(
           title: 'Scientific Calculator',
@@ -44,15 +43,46 @@ class CalculatorScreenState extends State<CalculatorScreen> {
 
   void onButtonPressed(String value) {
     setState(() {
-      if (value == '⬅') {
-        input = input.substring(0, input.length - 1);
+      if (value == 'sin' ||
+          value == 'cos' ||
+          value == 'tan' ||
+          value == 'log' ||
+          value == 'ln') {
+        input += '$value(';
+      } else if (value == '+-') {
+        input += '-';
+      } else if (value == 'π') {
+        input += 'pi';
+      } else if (value == '√') {
+        input += 'sqrt(';
+      } else if (value == 'x²') {
+        input += '^2';
+      } else if (value == 'xʸ') {
+        input += '^';
+      } else if (value == 'C') {
+        input = ""; // Reset input when switching modes
+        answer = "";
+      } else if (value == '⬅') {
+        if (input.isNotEmpty) {
+          input = input.substring(0, input.length - 1);
+        }
       } else if (value == "=") {
         try {
           String processedString = processString(input);
           double total = evaluateExpression(processedString);
-          answer = total.toString();
+          String result = total.toString();
+          if (result.contains('.')) {
+            // Get the part after the decimal
+            String decimalPart = result.split('.')[1];
+            if (decimalPart.length > 6) {
+              result = total.toStringAsFixed(6); // Round to six decimal places
+            }
+          }
+          answer = result;
         } catch (e) {
-          print(e);
+          if (kDebugMode) {
+            print(e);
+          }
           answer = 'Error';
         }
       } else if (value == "⇌") {
@@ -72,7 +102,9 @@ class CalculatorScreenState extends State<CalculatorScreen> {
 
 // Helper function to compute factorial
   int factorial(int n) {
-    if (n < 0) throw ArgumentError('Factorial is not defined for negative numbers');
+    if (n < 0) {
+      throw ArgumentError('Error');
+    }
     return n == 0 ? 1 : n * factorial(n - 1);
   }
 
@@ -86,7 +118,6 @@ class CalculatorScreenState extends State<CalculatorScreen> {
 
 // Function to process and replace sin(), cos(), tan(), log10(), factorial, and power (^) calls with evaluated results
   String processString(String s) {
-    print(s);
     // Replace implicit multiplication like 5(4-1) with 5 * (4-1)
     s = s.replaceAllMapped(RegExp(r'(\d+)\s*\(([^)]+)\)'), (match) {
       return '${match[1]} * (${match[2]})';
@@ -96,7 +127,8 @@ class CalculatorScreenState extends State<CalculatorScreen> {
       String inside = match[1]!;
       double value = evaluateExpression(inside);
       if (value < -1 || value > 1) {
-        throw ArgumentError('Input for asin must be in the range [-1, 1]. Got: $value');
+        throw ArgumentError(
+            'Input for asin must be in the range [-1, 1]. Got: $value');
       }
       double result = asin(value) * 180 / pi; // Convert radians to degrees
       return result.toString();
@@ -106,7 +138,8 @@ class CalculatorScreenState extends State<CalculatorScreen> {
       String inside = match[1]!;
       double value = evaluateExpression(inside);
       if (value < -1 || value > 1) {
-        throw ArgumentError('Input for acos must be in the range [-1, 1]. Got: $value');
+        throw ArgumentError(
+            'Input for acos must be in the range [-1, 1]. Got: $value');
       }
       double result = acos(value) * 180 / pi; // Convert radians to degrees
       return result.toString();
@@ -139,6 +172,14 @@ class CalculatorScreenState extends State<CalculatorScreen> {
       String inside = match[1]!;
       double value = evaluateExpression(inside);
       double result = tan(degToRad(value));
+      return result.toString();
+    });
+
+    // Replace log() with ln base log (log)
+    s = s.replaceAllMapped(RegExp(r'ln\((.*?)\)'), (match) {
+      String inside = match[1]!;
+      double value = evaluateExpression(inside);
+      double result = log(value); // log base
       return result.toString();
     });
 
@@ -191,77 +232,96 @@ class CalculatorScreenState extends State<CalculatorScreen> {
 
   @override
   Widget build(BuildContext context) {
+    const maxWidth = 600.0;
+    final Size screenSize = MediaQuery.of(context).size;
+    if (screenSize.width > maxWidth) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('High Screen Size')),
+        body: const Center(
+          child: Text(
+            'Screen size is too high!',
+            style: TextStyle(fontSize: 24),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
-      body: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const SizedBox(
-            height: 50,
-          ),
-          Expanded(
-            child: Column(
-              children: [
-                const Spacer(),
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16.r, vertical: 8.r),
-                  child: TextField(
-                    controller: TextEditingController(text: input),
-                    style: TextStyle(fontSize: 24.sp), // Responsive font size
-                    textAlign: TextAlign.right,
-                    decoration: const InputDecoration(
-                      border: InputBorder.none,
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16.r, vertical: 8.r),
-                  child: Align(
-                    alignment: Alignment.centerRight,
-                    child: Text(
-                      answer,
-                      style: TextStyle(fontSize: 24.sp), // Responsive font size
-                    ),
-                  ),
-                ),
-                const Spacer(),
-              ],
-            ),
-          ),
-          Column(
+      body: Center(
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: maxWidth),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  SizedBox(
-                    width: isScientific ? 40.w : 50.w, // Responsive width
-                    height: isScientific ? 25.w : 35.h, // Responsive height
-                  ),
-                  SizedBox(
-                    width: isScientific ? 40.w : 50.w,
-                    height: isScientific ? 25.w : 35.h,
-                  ),
-                  SizedBox(
-                    width: isScientific ? 40.w : 50.w,
-                    height: isScientific ? 25.w : 35.h,
-                  ),
-                  if (isScientific)
-                    SizedBox(
-                      width: isScientific ? 40.w : 50.w,
+              Expanded(
+                child: Column(
+                  children: [
+                    const Spacer(),
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16.r),
+                      child: TextField(
+                        controller: TextEditingController(text: input),
+                        style:
+                            TextStyle(fontSize: 24.h), // Responsive font size
+                        textAlign: TextAlign.right,
+                        decoration: const InputDecoration(
+                          border: InputBorder.none,
+                        ),
+                      ),
                     ),
-                  CalculatorButton(label: '⬅', onPressed: () => onButtonPressed('⬅')),
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16.r),
+                      child: Align(
+                        alignment: Alignment.centerRight,
+                        child: Text(
+                          answer,
+                          style:
+                              TextStyle(fontSize: 24.h), // Responsive font size
+                        ),
+                      ),
+                    ),
+                    const Spacer(),
+                  ],
+                ),
+              ),
+              Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      SizedBox(
+                        width: isScientific ? 40.w : 50.w, // Responsive width
+                        height: isScientific ? 25.h : 35.h, // Responsive height
+                      ),
+                      SizedBox(
+                        width: isScientific ? 40.w : 50.w,
+                        height: isScientific ? 25.h : 35.h,
+                      ),
+                      SizedBox(
+                        width: isScientific ? 40.w : 50.w,
+                        height: isScientific ? 25.h : 35.h,
+                      ),
+                      if (isScientific)
+                        SizedBox(
+                          width: isScientific ? 40.w : 50.w,
+                        ),
+                      CalculatorButton(
+                          label: '⬅', onPressed: () => onButtonPressed('⬅')),
+                    ],
+                  ),
+                  SizedBox(
+                    height: 2.w,
+                  ),
                 ],
               ),
-              SizedBox(
-                height: 2.h,
-              ),
+              if (!isScientific) ...[
+                buildStandardCalculator(),
+              ] else ...[
+                buildScientificCalculator(),
+              ],
             ],
           ),
-          if (!isScientific) ...[
-            buildStandardCalculator(),
-          ] else ...[
-            buildScientificCalculator(),
-          ],
-        ],
+        ),
       ),
     );
   }
@@ -282,7 +342,7 @@ class CalculatorScreenState extends State<CalculatorScreen> {
     return Column(
       children: [
         buildNumberRow(['2nd', 'sin', 'cos', 'tan', 'xʸ']),
-        buildNumberRow(['x²', 'log', 'in', '(', ')']),
+        buildNumberRow(['x²', 'log', 'ln', '(', ')']),
         buildNumberRow(['√', 'C', 'e', '%', '/']),
         buildNumberRow(['!', '7', '8', '9', '*']),
         buildNumberRow(['1/', '4', '5', '6', '-']),
@@ -294,11 +354,12 @@ class CalculatorScreenState extends State<CalculatorScreen> {
 
   Widget buildNumberRow(List<String> labels) {
     return Padding(
-      padding: EdgeInsets.only(bottom: 2.h), // Responsive padding
+      padding: EdgeInsets.only(bottom: 2.w), // Responsive padding
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: labels.map((label) {
-          return CalculatorButton(label: label, onPressed: () => onButtonPressed(label));
+          return CalculatorButton(
+              label: label, onPressed: () => onButtonPressed(label));
         }).toList(),
       ),
     );
@@ -317,19 +378,28 @@ class CalculatorButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final orientation = MediaQuery.of(context).orientation;
     return InkWell(
       onTap: onPressed,
       child: Container(
         height: isScientific ? 35.h : 45.h, // Responsive height
         width: isScientific ? 40.w : 50.w, // Responsive width
-        decoration: const BoxDecoration(
-          shape: BoxShape.circle,
+        decoration: BoxDecoration(
+          shape: orientation == Orientation.portrait
+              ? BoxShape.circle
+              : BoxShape.rectangle,
           color: Colors.amber,
+          borderRadius: orientation == Orientation.portrait
+              ? null
+              : BorderRadius.circular(8.r),
         ),
         child: Center(
           child: Text(
             label,
-            style: TextStyle(fontSize: 16.sp), // Responsive font size
+            style: TextStyle(
+                fontSize: orientation == Orientation.portrait
+                    ? 16.h
+                    : 22.h), // Responsive font size
           ),
         ),
       ),
