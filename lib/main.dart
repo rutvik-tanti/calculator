@@ -3,9 +3,8 @@ import 'dart:math';
 import 'package:expressions/expressions.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-
-bool isScientific = false;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -86,7 +85,13 @@ class CalculatorScreenState extends State<CalculatorScreen> {
           answer = 'Error';
         }
       } else if (value == "⇌") {
-        isScientific = !isScientific;
+        var orientation = MediaQuery.of(context).orientation;
+        if (orientation == Orientation.portrait) {
+          SystemChrome.setPreferredOrientations(
+              [DeviceOrientation.landscapeLeft]);
+        } else {
+          SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+        }
         input = ""; // Reset input when switching modes
         answer = "";
       } else {
@@ -233,8 +238,9 @@ class CalculatorScreenState extends State<CalculatorScreen> {
   @override
   Widget build(BuildContext context) {
     const maxWidth = 600.0;
+    var orientation = MediaQuery.of(context).orientation;
     final Size screenSize = MediaQuery.of(context).size;
-    if (screenSize.width > maxWidth) {
+    if (screenSize.width > maxWidth && orientation == Orientation.portrait) {
       return Scaffold(
         appBar: AppBar(title: const Text('High Screen Size')),
         body: const Center(
@@ -248,79 +254,100 @@ class CalculatorScreenState extends State<CalculatorScreen> {
 
     return Scaffold(
       body: Center(
-        child: Container(
-          constraints: const BoxConstraints(maxWidth: maxWidth),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Expanded(
-                child: Column(
-                  children: [
-                    const Spacer(),
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 16.r),
-                      child: TextField(
-                        controller: TextEditingController(text: input),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Expanded(
+              child: Column(
+                children: [
+                  const Spacer(),
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16.r),
+                    child: TextField(
+                      controller: TextEditingController(text: input),
+                      style: TextStyle(fontSize: 24.h), // Responsive font size
+                      textAlign: TextAlign.right,
+                      decoration: const InputDecoration(
+                        border: InputBorder.none,
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16.r),
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      child: Text(
+                        answer,
                         style:
                             TextStyle(fontSize: 24.h), // Responsive font size
-                        textAlign: TextAlign.right,
-                        decoration: const InputDecoration(
-                          border: InputBorder.none,
-                        ),
                       ),
                     ),
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 16.r),
-                      child: Align(
-                        alignment: Alignment.centerRight,
-                        child: Text(
-                          answer,
-                          style:
-                              TextStyle(fontSize: 24.h), // Responsive font size
-                        ),
-                      ),
-                    ),
-                    const Spacer(),
-                  ],
-                ),
-              ),
-              Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      SizedBox(
-                        width: isScientific ? 40.w : 50.w, // Responsive width
-                        height: isScientific ? 25.h : 35.h, // Responsive height
-                      ),
-                      SizedBox(
-                        width: isScientific ? 40.w : 50.w,
-                        height: isScientific ? 25.h : 35.h,
-                      ),
-                      SizedBox(
-                        width: isScientific ? 40.w : 50.w,
-                        height: isScientific ? 25.h : 35.h,
-                      ),
-                      if (isScientific)
-                        SizedBox(
-                          width: isScientific ? 40.w : 50.w,
-                        ),
-                      CalculatorButton(
-                          label: '⬅', onPressed: () => onButtonPressed('⬅')),
-                    ],
                   ),
-                  SizedBox(
-                    height: 2.w,
-                  ),
+                  const Spacer(),
                 ],
               ),
-              if (!isScientific) ...[
-                buildStandardCalculator(),
-              ] else ...[
-                buildScientificCalculator(),
+            ),
+            Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    SizedBox(
+                        width:
+                            orientation == Orientation.landscape ? 30.w : 50.w,
+                        height:
+                            orientation == Orientation.landscape ? 25.h : 35.h),
+                    SizedBox(
+                      width: orientation == Orientation.landscape ? 30.w : 50.w,
+                      height:
+                          orientation == Orientation.landscape ? 25.h : 35.h,
+                    ),
+                    SizedBox(
+                      width: orientation == Orientation.landscape ? 30.w : 50.w,
+                      height:
+                          orientation == Orientation.landscape ? 25.h : 35.h,
+                    ),
+                    if (orientation == Orientation.landscape)
+                      Row(
+                        children: [
+                          SizedBox(
+                            width: orientation == Orientation.landscape
+                                ? 30.w
+                                : 50.w,
+                            height: orientation == Orientation.landscape
+                                ? 25.h
+                                : 35.h,
+                          ),
+                          SizedBox(
+                            width: orientation == Orientation.landscape
+                                ? 30.w
+                                : 50.w,
+                            height: orientation == Orientation.landscape
+                                ? 25.h
+                                : 35.h,
+                          ),
+                          SizedBox(
+                            width: orientation == Orientation.landscape
+                                ? 30.w
+                                : 50.w,
+                          ),
+                        ],
+                      ),
+                    CalculatorButton(
+                        label: '⬅', onPressed: () => onButtonPressed('⬅')),
+                  ],
+                ),
+                SizedBox(
+                  height: 2.w,
+                ),
               ],
+            ),
+            if (orientation == Orientation.portrait) ...[
+              buildStandardCalculator(),
+            ] else ...[
+              buildScientificCalculator(),
             ],
-          ),
+          ],
         ),
       ),
     );
@@ -341,13 +368,11 @@ class CalculatorScreenState extends State<CalculatorScreen> {
   Widget buildScientificCalculator() {
     return Column(
       children: [
-        buildNumberRow(['2nd', 'sin', 'cos', 'tan', 'xʸ']),
-        buildNumberRow(['x²', 'log', 'ln', '(', ')']),
-        buildNumberRow(['√', 'C', 'e', '%', '/']),
-        buildNumberRow(['!', '7', '8', '9', '*']),
-        buildNumberRow(['1/', '4', '5', '6', '-']),
-        buildNumberRow(['π', '1', '2', '3', '+']),
-        buildNumberRow(['⇌', '4', '0', '.', '=']),
+        buildNumberRow(['2nd', 'Rad', '√', 'C', '(', ')', '%']),
+        buildNumberRow(['sin', 'cos', 'tan', '7', '8', '9', '/']),
+        buildNumberRow(['ln', 'log', '1/x', '4', '5', '6', '*']),
+        buildNumberRow(['e', 'x²', 'xʸ', '1', '2', '3', '-']),
+        buildNumberRow(['⇌', 'π', '!', '0', '.', '+', '=']),
       ],
     );
   }
@@ -382,8 +407,8 @@ class CalculatorButton extends StatelessWidget {
     return InkWell(
       onTap: onPressed,
       child: Container(
-        height: isScientific ? 35.h : 45.h, // Responsive height
-        width: isScientific ? 40.w : 50.w, // Responsive width
+        height: orientation == Orientation.landscape ? 35.h : 45.h,
+        width: orientation == Orientation.landscape ? 30.w : 50.w,
         decoration: BoxDecoration(
           shape: orientation == Orientation.portrait
               ? BoxShape.circle
