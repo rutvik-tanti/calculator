@@ -39,9 +39,13 @@ class CalculatorScreen extends StatefulWidget {
 class CalculatorScreenState extends State<CalculatorScreen> {
   String input = "";
   String answer = "";
-
+  bool isRad = false;
   void onButtonPressed(String value) {
     setState(() {
+      if(value == 'Rad' || value == 'Deg'){
+        isRad = !isRad;
+        return;
+      }else
       if (value == 'sin' ||
           value == 'cos' ||
           value == 'tan' ||
@@ -102,7 +106,7 @@ class CalculatorScreenState extends State<CalculatorScreen> {
 
 // Helper function to convert degrees to radians
   double degToRad(double degrees) {
-    return degrees * pi / 180;
+    return isRad ? degrees : degrees * pi / 180;
   }
 
 // Helper function to compute factorial
@@ -264,6 +268,7 @@ class CalculatorScreenState extends State<CalculatorScreen> {
                   Padding(
                     padding: EdgeInsets.symmetric(horizontal: 16.r),
                     child: TextField(
+                      canRequestFocus: false,
                       controller: TextEditingController(text: input),
                       style: TextStyle(fontSize: 24.h), // Responsive font size
                       textAlign: TextAlign.right,
@@ -368,7 +373,7 @@ class CalculatorScreenState extends State<CalculatorScreen> {
   Widget buildScientificCalculator() {
     return Column(
       children: [
-        buildNumberRow(['2nd', 'Rad', '√', 'C', '(', ')', '%']),
+        buildNumberRow(['2nd', (!isRad ? 'Deg' : 'Rad'), '√', 'C', '(', ')', '%']),
         buildNumberRow(['sin', 'cos', 'tan', '7', '8', '9', '/']),
         buildNumberRow(['ln', 'log', '1/x', '4', '5', '6', '*']),
         buildNumberRow(['e', 'x²', 'xʸ', '1', '2', '3', '-']),
